@@ -1,134 +1,131 @@
-import { mkdir, writeFile } from "node:fs/promises";
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>台9線花蓮段路況看板 (145K-305K)</title>
+<style>
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+  margin: 0; padding: 10px; background: #121212; color: #fff;
+  display: flex; flex-direction: column;
+}
+header { text-align: center; padding: 5px 0 10px; }
+header h1 { margin: 0; font-size: 1.2rem; color: #34a853; }
+#timer-text { font-size: .8rem; color: #aaa; margin-top: 3px; }
+.tab-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 6px; }
+.tab-container::-webkit-scrollbar { display: none; }
+.tab-btn {
+  background: #252525; color: #aaa; border: 1px solid #333; padding: 10px 14px;
+  border-radius: 20px; font-size: .85rem; font-weight: bold; white-space: nowrap; cursor: pointer;
+}
+.tab-btn.active { background: #34a853; color: #fff; border-color: #34a853; box-shadow: 0 2px 8px rgba(52,168,83,.4); }
+.traffic-card { display: none; background: #1e1e1e; border-radius: 12px; overflow: hidden; border: 1px solid #2d2d2d; }
+.traffic-card.active { display: flex; flex-direction: column; flex: 1; min-height: 360px; }
+.card-title {
+  padding: 10px 15px; font-size: .95rem; font-weight: bold; background: #252525;
+  border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.live-badge { background: #ea4335; font-size: .65rem; padding: 2px 6px; border-radius: 4px; animation: blink 2s infinite; }
+.traffic-card iframe { flex: 1; width: 100%; border: 0; min-height: 320px; }
+.rescue { margin-top: 10px; padding: 12px; background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; text-align: center; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.rescue p { margin: 0 0 10px; font-size: .9rem; color: #ddd; }
+.rescue-btns { display: flex; gap: 8px; }
+.rescue-btns a { flex: 1; padding: 12px 8px; border-radius: 10px; font-weight: bold; font-size: .95rem; text-decoration: none; color: #fff; }
+.btn-call { background: #ea4335; }
+.btn-web { background: #34a853; }
+@keyframes blink { 50% { opacity: 1; } 0%, 100% { opacity: .5; } }
 
-const TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token";
-const BASE = "https://tdx.transportdata.tw/api/basic";
-const ROUTES = {
-  vd:   "/v2/Road/Traffic/Live/VD/Highway",
-  cctv: "/v2/Road/Traffic/CCTV/Highway",
-  news: "/v2/Road/Traffic/Live/News/Highway",
-};
+.rescue-bar { margin-top: 10px; background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; padding: 12px; text-align: center; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.rescue-bar p { margin: 0 0 10px; font-size: .85rem; color: #ccc; }
+.rescue-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.rescue-btns a { flex: 1 1 30%; min-width: 96px; padding: 12px 6px; border-radius: 10px; font-weight: bold; font-size: .9rem; text-decoration: none; color: #fff; }
+.btn-call { background: #ea4335; }
+.btn-line { background: #06c755; }
+.btn-site { background: #333; border: 1px solid #555; }
+.rescue-bar small { display: block; margin-top: 8px; color: #888; font-size: .72rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>台9線花蓮段即時路況 (145K-305K)</h1>
+  <div id="timer-text">每 5 分鐘自動刷新 🔄 <span id="last"></span></div>
+</header>
+<div class="tab-container" id="tabs"></div>
+<div id="cards" style="display:flex;flex-direction:column;flex:1"></div>
 
-// 花蓮縣台9線：和平 145K → 縣界橋 304.737K
-const KM_MIN = 145;
-const KM_MAX = 304.737;
-const inRange = (km) => Number.isFinite(km) && km >= KM_MIN && km <= KM_MAX;
+<footer class="rescue">
+  <p>🚨 路上遇到拋錨、爆胎、沒電、事故？</p>
+  <div class="rescue-btns">
+    <a id="call-btn" class="btn-call" hidden>📞 撥打救援電話</a>
+    <a class="btn-web" href="https://qijiaroadrescue.com/" target="_blank" rel="noopener">啟佳道路救援官網</a>
+  </div>
+</footer>
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+<footer class="rescue-bar">
+  <p>🚨 路上遇到車輛故障、事故、陷車？花蓮 24 小時道路救援</p>
+  <div class="rescue-btns">
+    <a class="btn-call" href="tel:0937165037">📞 立即撥打</a>
+    <a class="btn-line" href="https://page.line.me/0937_165037?openQrModal=true" target="_blank" rel="noopener">💬 LINE 傳定位</a>
+    <a class="btn-site" href="https://qijiaroadrescue.com/" target="_blank" rel="noopener">🌐 官網</a>
+  </div>
+  <small>啟佳道路救援 0937-165-037｜Google 地圖路況僅供參考，封路管制請以公路局公告為準</small>
+</footer>
 
-async function call(url, options) {
-  let res;
-  for (let i = 0; i < 3; i++) {
-    res = await fetch(url, { ...options, signal: AbortSignal.timeout(30000) });
-    if (res.status !== 429) return res;
-    await sleep(15000);
-  }
-  return res;
+<script>
+// 啟佳道路救援電話：填入後「撥打」按鈕才會出現，例如 "0912345678"
+const RESCUE_PHONE = "";
+if (RESCUE_PHONE) {
+  const b = document.getElementById('call-btn');
+  b.href = 'tel:' + RESCUE_PHONE;
+  b.hidden = false;
 }
 
-// "166K+230" -> 166.23
-function parseMile(s) {
-  const m = String(s || "").match(/(\d+)\s*K\s*\+?\s*(\d*)/i);
-  return m ? parseInt(m[1], 10) + (m[2] ? parseInt(m[2], 10) / 1000 : 0) : NaN;
+// 路段設定：改這裡即可調整中心點(lat,lng)與縮放(z)，或新增路段
+const ROADS = [
+  { tab: "1️⃣ 蘇花和平-崇德",   title: "145K-168K（和平、中仁/匯德隧道、和仁、崇德）", lat: 24.24, lng: 121.70, z: 11 },
+  { tab: "2️⃣ 新城-花蓮-壽豐",  title: "168K-212K（新城、花蓮市區、吉安、壽豐）",     lat: 23.99, lng: 121.58, z: 11 },
+  { tab: "3️⃣ 鳳林-光復-瑞穗",  title: "212K-260K（鳳林、光復、瑞穗）",               lat: 23.62, lng: 121.41, z: 11 },
+  { tab: "4️⃣ 玉里-富里竹田",   title: "260K-305K（玉里、東里、富里竹田）",           lat: 23.25, lng: 121.28, z: 11 },
+];
+
+function mapUrl(r, stamp) {
+  // layer=t 開啟即時路況；rt 只用來破壞快取（不可用 t，t 是地圖類型）
+  return `https://maps.google.com/maps?q=${r.lat},${r.lng}&z=${r.z}&hl=zh-TW&t=m&layer=t&output=embed&rt=${stamp}`;
 }
 
-function trimCctv(json) {
-  const KEEP = ["CCTVID", "RoadID", "RoadName", "RoadDirection", "LocationMile", "VideoImageURL", "SurveillanceDescription"];
-  const list = (json.CCTVs || [])
-    .filter((c) => {
-      // 台9線本身，或 ID 屬於台9線里程樁的花蓮市區道路（康樂路、中正路一段）；排除台9丁/甲/乙/丙等支線
-      const isRoute9 = String(c.RoadID) === "300090";
-      const isCityRoad = /^CCTV-\d+-0090-/.test(String(c.CCTVID || "")) && !/^台9/.test(String(c.RoadName || ""));
-      return (isRoute9 || isCityRoad) && inRange(parseMile(c.LocationMile));
-    })
-    .map((c) => Object.fromEntries(KEEP.map((k) => [k, c[k]])));
-  return { UpdateTime: json.UpdateTime, CCTVs: list };
-}
+const tabsEl = document.getElementById('tabs');
+const cardsEl = document.getElementById('cards');
 
-function trimVd(json) {
-  const list = (json.VDLives || []).filter((v) => {
-    const m = String(v.VDID || "").match(/-0090-(\d{3})-/);
-    return m && inRange(parseInt(m[1], 10));
-  });
-  return { ...json, VDLives: list };
-}
+ROADS.forEach((r, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+  btn.textContent = r.tab;
+  btn.onclick = () => select(i);
+  tabsEl.appendChild(btn);
 
-const TOWNS = ["花蓮", "新城", "吉安", "壽豐", "鳳林", "光復", "瑞穗", "玉里", "富里", "崇德", "秀林"];
-
-function trimNews(json) {
-  const list = (json.Newses || []).filter((item) => {
-    const title = item.Title || "";
-    const text = title + (item.Description || "");
-    // 標題有台9線里程：只依里程判斷（排除宜蘭蘇花改、台東段）
-    const m = title.match(/台9線[^\d]*(\d{2,3})K/);
-    if (m) return inRange(parseInt(m[1], 10));
-    // 沒有里程（例如天氣特報）：依地名判斷
-    return TOWNS.some((t) => text.includes(t)) && !/宜蘭|台北|台東/.test(text);
-  });
-  return { ...json, Newses: list };
-}
-
-// allowEmpty：該類資料為空是正常情況（例如沒有管制新聞）
-const TRIMMERS = {
-  cctv: { fn: trimCctv, count: (j) => j.CCTVs.length,   allowEmpty: false },
-  vd:   { fn: trimVd,   count: (j) => j.VDLives.length, allowEmpty: false },
-  news: { fn: trimNews, count: (j) => j.Newses.length,  allowEmpty: true  },
-};
-
-await mkdir("data", { recursive: true });
-const status = { updated: new Date().toISOString(), results: {}, kept: {} };
-
-const tokenRes = await call(TOKEN_URL, {
-  method: "POST",
-  headers: { "content-type": "application/x-www-form-urlencoded" },
-  body: new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: process.env.TDX_ID,
-    client_secret: process.env.TDX_SECRET,
-  }),
+  const card = document.createElement('div');
+  card.className = 'traffic-card' + (i === 0 ? ' active' : '');
+  card.innerHTML = `<div class="card-title"><span>📍 ${r.title}</span><span class="live-badge">LIVE</span></div>
+    <iframe class="traffic-map" loading="lazy" allowfullscreen></iframe>`;
+  card.querySelector('iframe').src = mapUrl(r, Date.now());
+  cardsEl.appendChild(card);
 });
 
-if (!tokenRes.ok) {
-  status.results.token = tokenRes.status + " " + (await tokenRes.text()).slice(0, 300);
-} else {
-  const { access_token } = await tokenRes.json();
-  status.results.token = "ok";
-  for (const [name, path] of Object.entries(ROUTES)) {
-    try {
-      const res = await call(`${BASE}${path}?$format=JSON&$top=5000`, {
-        headers: { authorization: "Bearer " + access_token },
-      });
-      if (!res.ok) {
-        status.results[name] = res.status + " " + (await res.text()).slice(0, 300);
-        continue;
-      }
-
-      let json;
-      try {
-        json = JSON.parse(await res.text());
-      } catch {
-        status.results[name] = "invalid json";
-        continue;
-      }
-
-      const trimmer = TRIMMERS[name];
-      const trimmed = trimmer.fn(json);
-      const n = trimmer.count(trimmed);
-      status.kept[name] = n;
-
-      // 過濾後為空且不應為空：保留上一份好資料，不覆蓋，並標記失敗
-      if (n === 0 && !trimmer.allowEmpty) {
-        status.results[name] = "empty after filter (kept previous file)";
-        continue;
-      }
-
-      await writeFile(`data/${name}.json`, JSON.stringify(trimmed));
-      status.results[name] = "ok";
-    } catch (e) {
-      status.results[name] = "error " + e;
-    }
-  }
+function select(i) {
+  [...tabsEl.children].forEach((b, j) => b.classList.toggle('active', i === j));
+  [...cardsEl.children].forEach((c, j) => c.classList.toggle('active', i === j));
 }
 
-await writeFile("data/status.json", JSON.stringify(status, null, 2));
-
-if (Object.values(status.results).some((v) => v !== "ok")) process.exitCode = 1;
+function refresh() {
+  const now = Date.now();
+  document.querySelectorAll('.traffic-map').forEach((f, i) => f.src = mapUrl(ROADS[i], now));
+  document.getElementById('last').textContent = '｜更新於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
+}
+document.getElementById('last').textContent = '｜更新於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
+setInterval(refresh, 5 * 60 * 1000);
+</script>
+</body>
+</html>
