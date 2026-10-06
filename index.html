@@ -52,7 +52,7 @@ header p { margin: 6px 0 0; font-size: .8rem; color: var(--muted); }
 
 <header>
   <h1>🚗 台9線花蓮段即時路況</h1>
-  <p>145K ～ 305K｜點選路段，開啟 Google 地圖路況</p>
+  <p>145K ～ 305K（每 10K 一段）｜點選路段看 Google 路況</p>
 </header>
 
 <div class="notice">
@@ -80,26 +80,46 @@ header p { margin: 6px 0 0; font-size: .8rem; color: var(--muted); }
 </nav>
 
 <script>
-// 每段 20K：km 範圍、沿線地名、地圖中心(lat,lng)、縮放 z。座標不準時改這裡。
+// 每段 10K：km 範圍、沿線地名、地圖中心(lat,lng)、縮放 z。座標不準時改這裡。
 const ROADS = [
-  { km: "145K – 165K", towns: "和平・和仁・崇德",         lat: 24.235, lng: 121.71, z: 12 },
-  { km: "165K – 185K", towns: "崇德・新城・北埔",         lat: 24.14,  lng: 121.63, z: 12 },
-  { km: "185K – 205K", towns: "花蓮市區・吉安・壽豐",     lat: 23.95,  lng: 121.57, z: 12 },
-  { km: "205K – 225K", towns: "壽豐・溪口・鳳林",         lat: 23.78,  lng: 121.49, z: 12 },
-  { km: "225K – 245K", towns: "鳳林・光復・大農大富",     lat: 23.67,  lng: 121.42, z: 12 },
-  { km: "245K – 265K", towns: "光復・瑞穗・舞鶴",         lat: 23.53,  lng: 121.38, z: 12 },
-  { km: "265K – 285K", towns: "瑞穗・三民・玉里",         lat: 23.40,  lng: 121.33, z: 12 },
-  { km: "285K – 305K", towns: "東里・富里・竹田",         lat: 23.22,  lng: 121.27, z: 12 },
+  { km: "145K – 155K", towns: "和平", lat: 24.262, lng: 121.727, z: 13 },
+  { km: "155K – 165K", towns: "和仁・崇德", lat: 24.211, lng: 121.690, z: 13 },
+  { km: "165K – 175K", towns: "崇德・新城", lat: 24.164, lng: 121.650, z: 13 },
+  { km: "175K – 185K", towns: "新城・北埔", lat: 24.093, lng: 121.615, z: 13 },
+  { km: "185K – 195K", towns: "花蓮市區・吉安", lat: 23.997, lng: 121.585, z: 13 },
+  { km: "195K – 205K", towns: "吉安・壽豐", lat: 23.907, lng: 121.550, z: 13 },
+  { km: "205K – 215K", towns: "壽豐・溪口", lat: 23.823, lng: 121.510, z: 13 },
+  { km: "215K – 225K", towns: "溪口・鳳林", lat: 23.753, lng: 121.472, z: 13 },
+  { km: "225K – 235K", towns: "鳳林・光復", lat: 23.698, lng: 121.438, z: 13 },
+  { km: "235K – 245K", towns: "光復・大農大富", lat: 23.635, lng: 121.410, z: 13 },
+  { km: "245K – 255K", towns: "瑞穗", lat: 23.565, lng: 121.390, z: 13 },
+  { km: "255K – 265K", towns: "瑞穗・舞鶴", lat: 23.498, lng: 121.367, z: 13 },
+  { km: "265K – 275K", towns: "三民", lat: 23.432, lng: 121.343, z: 13 },
+  { km: "275K – 285K", towns: "三民・玉里", lat: 23.355, lng: 121.315, z: 13 },
+  { km: "285K – 295K", towns: "玉里・東里", lat: 23.265, lng: 121.285, z: 13 },
+  { km: "295K – 305K", towns: "東里・富里竹田", lat: 23.195, lng: 121.260, z: 13 },
 ];
 const list = document.getElementById('list');
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 ROADS.forEach((r, i) => {
   const a = document.createElement('a');
   a.className = 'seg';
   a.target = '_blank'; a.rel = 'noopener';
-  a.href = `https://www.google.com/maps/@${r.lat},${r.lng},${r.z}z/data=!5m1!1e1`; // !5m1!1e1 = 即時路況圖層
+  // 網址格式：!5m1!1e1 = 開啟即時路況圖層。Android/手機瀏覽器會自動用 Google 地圖 App 或手機版網頁開啟
+  a.href = `https://www.google.com/maps/@${r.lat},${r.lng},${r.z}z/data=!5m1!1e1`;
   a.innerHTML = `<div class="num">${i + 1}</div>
     <div class="info"><div class="km">${r.km}</div><div class="towns">${r.towns}</div></div>
     <div class="go">看路況 ›</div>`;
+  if (isIOS) {
+    // iPhone：先嘗試開啟 Google 地圖 App（含路況），沒裝 App 就退回手機版網頁
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const web = a.href;
+      const t = setTimeout(() => { window.location.href = web; }, 900);
+      document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(t); }, { once: true });
+      window.location.href = `comgooglemaps://?center=${r.lat},${r.lng}&zoom=${r.z}&views=traffic`;
+    });
+  }
   list.appendChild(a);
 });
 </script>
