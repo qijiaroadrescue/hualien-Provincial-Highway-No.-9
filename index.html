@@ -17,27 +17,16 @@ header h1 { margin: 0; font-size: 1.2rem; color: #34a853; }
 #timer-text { font-size: .8rem; color: #aaa; margin-top: 3px; }
 .tab-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 6px; }
 .tab-container::-webkit-scrollbar { display: none; }
-.tab-btn {
-  background: #252525; color: #aaa; border: 1px solid #333; padding: 10px 14px;
-  border-radius: 20px; font-size: .85rem; font-weight: bold; white-space: nowrap; cursor: pointer;
-}
+.tab-btn { background: #252525; color: #aaa; border: 1px solid #333; padding: 10px 14px; border-radius: 20px; font-size: .85rem; font-weight: bold; white-space: nowrap; cursor: pointer; }
 .tab-btn.active { background: #34a853; color: #fff; border-color: #34a853; box-shadow: 0 2px 8px rgba(52,168,83,.4); }
-.traffic-card { display: none; background: #1e1e1e; border-radius: 12px; overflow: hidden; border: 1px solid #2d2d2d; }
-.traffic-card.active { display: flex; flex-direction: column; flex: 1; min-height: 360px; }
-.card-title {
-  padding: 10px 15px; font-size: .95rem; font-weight: bold; background: #252525;
-  border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; gap: 8px;
-}
+.card { flex: 1; display: flex; flex-direction: column; background: #1e1e1e; border-radius: 12px; overflow: hidden; border: 1px solid #2d2d2d; min-height: 360px; }
+.card-title { padding: 10px 15px; font-size: .95rem; font-weight: bold; background: #252525; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .live-badge { background: #ea4335; font-size: .65rem; padding: 2px 6px; border-radius: 4px; animation: blink 2s infinite; }
-.traffic-card iframe { flex: 1; width: 100%; border: 0; min-height: 320px; }
-.rescue { margin-top: 10px; padding: 12px; background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; text-align: center; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
-.rescue p { margin: 0 0 10px; font-size: .9rem; color: #ddd; }
-.rescue-btns { display: flex; gap: 8px; }
-.rescue-btns a { flex: 1; padding: 12px 8px; border-radius: 10px; font-weight: bold; font-size: .95rem; text-decoration: none; color: #fff; }
-.btn-call { background: #ea4335; }
-.btn-web { background: #34a853; }
+#map { flex: 1; min-height: 320px; }
+.legend { padding: 6px 12px; font-size: .75rem; color: #aaa; background: #252525; border-top: 1px solid #2d2d2d; }
+.open-link { display: block; margin: 10px; padding: 12px; background: #34a853; color: #fff; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; }
+#nokey { padding: 16px; font-size: .9rem; color: #ddd; line-height: 1.6; }
 @keyframes blink { 50% { opacity: 1; } 0%, 100% { opacity: .5; } }
-
 .rescue-bar { margin-top: 10px; background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; padding: 12px; text-align: center; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 .rescue-bar p { margin: 0 0 10px; font-size: .85rem; color: #ccc; }
 .rescue-btns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -54,15 +43,14 @@ header h1 { margin: 0; font-size: 1.2rem; color: #34a853; }
   <div id="timer-text">每 5 分鐘自動刷新 🔄 <span id="last"></span></div>
 </header>
 <div class="tab-container" id="tabs"></div>
-<div id="cards" style="display:flex;flex-direction:column;flex:1"></div>
 
-<footer class="rescue">
-  <p>🚨 路上遇到拋錨、爆胎、沒電、事故？</p>
-  <div class="rescue-btns">
-    <a id="call-btn" class="btn-call" hidden>📞 撥打救援電話</a>
-    <a class="btn-web" href="https://qijiaroadrescue.com/" target="_blank" rel="noopener">啟佳道路救援官網</a>
-  </div>
-</footer>
+<div class="card">
+  <div class="card-title"><span id="road-title"></span><span class="live-badge">LIVE</span></div>
+  <div id="map" hidden></div>
+  <div id="nokey" hidden>尚未設定 Google 地圖金鑰，內嵌路況地圖暫時無法顯示。<br>請先點下方按鈕，在 Google 地圖中查看含路況的畫面。</div>
+  <a id="open-link" class="open-link" target="_blank" rel="noopener">🗺️ 在 Google 地圖開啟（含即時路況）</a>
+  <div class="legend">🟢 順暢　🟠 車多　🔴 壅塞／緩慢（顏色來自 Google 路況）</div>
+</div>
 
 <footer class="rescue-bar">
   <p>🚨 路上遇到車輛故障、事故、陷車？花蓮 24 小時道路救援</p>
@@ -75,57 +63,70 @@ header h1 { margin: 0; font-size: 1.2rem; color: #34a853; }
 </footer>
 
 <script>
-// 啟佳道路救援電話：填入後「撥打」按鈕才會出現，例如 "0912345678"
-const RESCUE_PHONE = "";
-if (RESCUE_PHONE) {
-  const b = document.getElementById('call-btn');
-  b.href = 'tel:' + RESCUE_PHONE;
-  b.hidden = false;
-}
+// ★ 把你的 Google Maps API 金鑰貼在下面引號中（教學見對話說明）。留空則只顯示「在 Google 地圖開啟」按鈕。
+const API_KEY = "";
 
-// 路段設定：改這裡即可調整中心點(lat,lng)與縮放(z)，或新增路段
 const ROADS = [
-  { tab: "1️⃣ 蘇花和平-崇德",   title: "145K-168K（和平、中仁/匯德隧道、和仁、崇德）", lat: 24.24, lng: 121.70, z: 11 },
-  { tab: "2️⃣ 新城-花蓮-壽豐",  title: "168K-212K（新城、花蓮市區、吉安、壽豐）",     lat: 23.99, lng: 121.58, z: 11 },
-  { tab: "3️⃣ 鳳林-光復-瑞穗",  title: "212K-260K（鳳林、光復、瑞穗）",               lat: 23.62, lng: 121.41, z: 11 },
-  { tab: "4️⃣ 玉里-富里竹田",   title: "260K-305K（玉里、東里、富里竹田）",           lat: 23.25, lng: 121.28, z: 11 },
+  { tab: "① 145-165K", title: "145K-165K（和平、和仁、崇德）",       lat: 24.235, lng: 121.71, z: 12 },
+  { tab: "② 165-185K", title: "165K-185K（崇德、新城、北埔）",       lat: 24.14, lng: 121.63, z: 12 },
+  { tab: "③ 185-205K", title: "185K-205K（花蓮市區、吉安、壽豐）",   lat: 23.95, lng: 121.57, z: 12 },
+  { tab: "④ 205-225K", title: "205K-225K（壽豐、溪口、鳳林）",       lat: 23.78, lng: 121.49, z: 12 },
+  { tab: "⑤ 225-245K", title: "225K-245K（鳳林、光復、大農大富）",   lat: 23.67, lng: 121.42, z: 12 },
+  { tab: "⑥ 245-265K", title: "245K-265K（光復、瑞穗、舞鶴）",       lat: 23.53, lng: 121.38, z: 12 },
+  { tab: "⑦ 265-285K", title: "265K-285K（瑞穗、三民、玉里）",       lat: 23.40, lng: 121.33, z: 12 },
+  { tab: "⑧ 285-305K", title: "285K-305K（東里、富里、竹田）",       lat: 23.22, lng: 121.27, z: 12 },
 ];
 
-function mapUrl(r, stamp) {
-  // layer=t 開啟即時路況；rt 只用來破壞快取（不可用 t，t 是地圖類型）
-  return `https://maps.google.com/maps?q=${r.lat},${r.lng}&z=${r.z}&hl=zh-TW&t=m&layer=t&output=embed&rt=${stamp}`;
-}
-
+let cur = 0, map, traffic;
 const tabsEl = document.getElementById('tabs');
-const cardsEl = document.getElementById('cards');
 
-ROADS.forEach((r, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
-  btn.textContent = r.tab;
-  btn.onclick = () => select(i);
-  tabsEl.appendChild(btn);
-
-  const card = document.createElement('div');
-  card.className = 'traffic-card' + (i === 0 ? ' active' : '');
-  card.innerHTML = `<div class="card-title"><span>📍 ${r.title}</span><span class="live-badge">LIVE</span></div>
-    <iframe class="traffic-map" loading="lazy" allowfullscreen></iframe>`;
-  card.querySelector('iframe').src = mapUrl(r, Date.now());
-  cardsEl.appendChild(card);
-});
-
-function select(i) {
-  [...tabsEl.children].forEach((b, j) => b.classList.toggle('active', i === j));
-  [...cardsEl.children].forEach((c, j) => c.classList.toggle('active', i === j));
+function gmapsLink(r) {
+  // 與你提供的網址同格式：!5m1!1e1 = 開啟即時路況圖層
+  return `https://www.google.com/maps/@${r.lat},${r.lng},${r.z}z/data=!5m1!1e1`;
 }
-
-function refresh() {
-  const now = Date.now();
-  document.querySelectorAll('.traffic-map').forEach((f, i) => f.src = mapUrl(ROADS[i], now));
+function stamp() {
   document.getElementById('last').textContent = '｜更新於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
 }
-document.getElementById('last').textContent = '｜更新於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
-setInterval(refresh, 5 * 60 * 1000);
+function select(i) {
+  cur = i;
+  const r = ROADS[i];
+  [...tabsEl.children].forEach((b, j) => b.classList.toggle('active', i === j));
+  document.getElementById('road-title').textContent = '📍 ' + r.title;
+  document.getElementById('open-link').href = gmapsLink(r);
+  if (map) { map.setCenter({lat: r.lat, lng: r.lng}); map.setZoom(r.z); }
+}
+
+ROADS.forEach((r, i) => {
+  const b = document.createElement('button');
+  b.className = 'tab-btn' + (i === 0 ? ' active' : '');
+  b.textContent = r.tab;
+  b.onclick = () => select(i);
+  tabsEl.appendChild(b);
+});
+
+window.initMap = function () {
+  const r = ROADS[cur];
+  document.getElementById('map').hidden = false;
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: r.lat, lng: r.lng}, zoom: r.z,
+    gestureHandling: 'greedy', mapTypeControl: false, streetViewControl: false, fullscreenControl: true
+  });
+  traffic = new google.maps.TrafficLayer();
+  traffic.setMap(map);
+  setInterval(() => { traffic.setMap(null); traffic.setMap(map); stamp(); }, 5 * 60 * 1000);
+};
+
+select(0);
+stamp();
+if (API_KEY) {
+  const s = document.createElement('script');
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap&language=zh-TW&loading=async`;
+  s.async = true;
+  s.onerror = () => { document.getElementById('nokey').hidden = false; };
+  document.head.appendChild(s);
+} else {
+  document.getElementById('nokey').hidden = false;
+}
 </script>
 </body>
 </html>
