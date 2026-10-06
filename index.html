@@ -2,131 +2,106 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>台9線花蓮段路況看板 (145K-305K)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<title>台9線花蓮段路況 (145K-305K)</title>
 <style>
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+:root { --bg:#121212; --card:#1e1e1e; --line:#2d2d2d; --green:#34a853; --red:#ea4335; --muted:#9aa0a6; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
+  margin: 0; background: var(--bg); color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-  margin: 0; padding: 10px; background: #121212; color: #fff;
-  display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px calc(88px + env(safe-area-inset-bottom, 0px));
 }
-header { text-align: center; padding: 5px 0 10px; }
-header h1 { margin: 0; font-size: 1.2rem; color: #34a853; }
-#timer-text { font-size: .8rem; color: #aaa; margin-top: 3px; }
-.tab-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 6px; }
-.tab-container::-webkit-scrollbar { display: none; }
-.tab-btn { background: #252525; color: #aaa; border: 1px solid #333; padding: 10px 14px; border-radius: 20px; font-size: .85rem; font-weight: bold; white-space: nowrap; cursor: pointer; }
-.tab-btn.active { background: #34a853; color: #fff; border-color: #34a853; box-shadow: 0 2px 8px rgba(52,168,83,.4); }
-.card { flex: 1; display: flex; flex-direction: column; background: #1e1e1e; border-radius: 12px; overflow: hidden; border: 1px solid #2d2d2d; min-height: 360px; }
-.card-title { padding: 10px 15px; font-size: .95rem; font-weight: bold; background: #252525; border-bottom: 1px solid #2d2d2d; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.live-badge { background: #ea4335; font-size: .65rem; padding: 2px 6px; border-radius: 4px; animation: blink 2s infinite; }
-#map { flex: 1; min-height: 320px; }
-.legend { padding: 6px 12px; font-size: .75rem; color: #aaa; background: #252525; border-top: 1px solid #2d2d2d; }
-.open-link { display: block; margin: 10px; padding: 12px; background: #34a853; color: #fff; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; }
-#nokey { padding: 16px; font-size: .9rem; color: #ddd; line-height: 1.6; }
-@keyframes blink { 50% { opacity: 1; } 0%, 100% { opacity: .5; } }
-.rescue-bar { margin-top: 10px; background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 12px; padding: 12px; text-align: center; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
-.rescue-bar p { margin: 0 0 10px; font-size: .85rem; color: #ccc; }
-.rescue-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-.rescue-btns a { flex: 1 1 30%; min-width: 96px; padding: 12px 6px; border-radius: 10px; font-weight: bold; font-size: .9rem; text-decoration: none; color: #fff; }
-.btn-call { background: #ea4335; }
-.btn-line { background: #06c755; }
-.btn-site { background: #333; border: 1px solid #555; }
-.rescue-bar small { display: block; margin-top: 8px; color: #888; font-size: .72rem; }
+header { text-align: center; padding: 6px 0 14px; }
+header h1 { margin: 0; font-size: 1.25rem; color: var(--green); }
+header p { margin: 6px 0 0; font-size: .8rem; color: var(--muted); }
+
+.notice { background: #2a2416; border: 1px solid #5c4a1a; color: #f2d58a; border-radius: 12px; padding: 10px 12px; font-size: .8rem; line-height: 1.5; margin-bottom: 14px; }
+.notice a { color: #ffd76a; font-weight: bold; }
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+.seg {
+  display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-height: 68px;
+}
+.seg:active { background: #262626; transform: scale(.99); }
+.num { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--green); display: grid; place-items: center; font-weight: bold; }
+.info { flex: 1; min-width: 0; }
+.km { font-size: 1.05rem; font-weight: bold; }
+.towns { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.go { flex: none; font-size: .8rem; font-weight: bold; color: var(--green); white-space: nowrap; }
+
+.how { margin-top: 16px; font-size: .75rem; color: var(--muted); line-height: 1.6; text-align: center; }
+.how .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 3px 0 8px; vertical-align: -1px; }
+
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: rgba(18,18,18,.96); border-top: 1px solid var(--line);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+.bar-title { text-align: center; font-size: .7rem; color: var(--muted); margin-bottom: 6px; }
+.btns { display: flex; gap: 8px; }
+.btns a { flex: 1; text-align: center; padding: 13px 4px; border-radius: 12px; font-weight: bold; font-size: .95rem; color: #fff; text-decoration: none; }
+.call { background: var(--red); flex: 1.4 !important; }
+.line { background: #06c755; }
+.site { background: #333; border: 1px solid #555; }
 </style>
 </head>
 <body>
-<header>
-  <h1>台9線花蓮段即時路況 (145K-305K)</h1>
-  <div id="timer-text">每 5 分鐘自動刷新 🔄 <span id="last"></span></div>
-</header>
-<div class="tab-container" id="tabs"></div>
 
-<div class="card">
-  <div class="card-title"><span id="road-title"></span><span class="live-badge">LIVE</span></div>
-  <div id="map" hidden></div>
-  <div id="nokey" hidden>尚未設定 Google 地圖金鑰，內嵌路況地圖暫時無法顯示。<br>請先點下方按鈕，在 Google 地圖中查看含路況的畫面。</div>
-  <a id="open-link" class="open-link" target="_blank" rel="noopener">🗺️ 在 Google 地圖開啟（含即時路況）</a>
-  <div class="legend">🟢 順暢　🟠 車多　🔴 壅塞／緩慢（顏色來自 Google 路況）</div>
+<header>
+  <h1>🚗 台9線花蓮段即時路況</h1>
+  <p>145K ～ 305K｜點選路段，開啟 Google 地圖路況</p>
+</header>
+
+<div class="notice">
+  ⚠️ Google 路況只顯示車速。封路、施工、管制請查
+  <a href="https://qijiaroadrescue.com/road-status/" target="_blank" rel="noopener">宜花東即時路況與管制</a>
+  或公路局公告。
 </div>
 
-<footer class="rescue-bar">
-  <p>🚨 路上遇到車輛故障、事故、陷車？花蓮 24 小時道路救援</p>
-  <div class="rescue-btns">
-    <a class="btn-call" href="tel:0937165037">📞 立即撥打</a>
-    <a class="btn-line" href="https://page.line.me/0937_165037?openQrModal=true" target="_blank" rel="noopener">💬 LINE 傳定位</a>
-    <a class="btn-site" href="https://qijiaroadrescue.com/" target="_blank" rel="noopener">🌐 官網</a>
+<main class="list" id="list"></main>
+
+<div class="how">
+  地圖上的顏色：
+  <span class="dot" style="background:#34a853"></span>順暢
+  <span class="dot" style="background:#f9a825"></span>車多
+  <span class="dot" style="background:#ea4335"></span>壅塞
+</div>
+
+<nav class="bar">
+  <div class="bar-title">🚨 拋錨、爆胎、沒電、事故？啟佳道路救援 24 小時</div>
+  <div class="btns">
+    <a class="call" href="tel:0937165037">📞 立即撥打</a>
+    <a class="line" href="https://page.line.me/0937_165037?openQrModal=true" target="_blank" rel="noopener">💬 LINE</a>
+    <a class="site" href="https://qijiaroadrescue.com/" target="_blank" rel="noopener">官網</a>
   </div>
-  <small>啟佳道路救援 0937-165-037｜Google 地圖路況僅供參考，封路管制請以公路局公告為準</small>
-</footer>
+</nav>
 
 <script>
-// ★ 把你的 Google Maps API 金鑰貼在下面引號中（教學見對話說明）。留空則只顯示「在 Google 地圖開啟」按鈕。
-const API_KEY = "";
-
+// 每段 20K：km 範圍、沿線地名、地圖中心(lat,lng)、縮放 z。座標不準時改這裡。
 const ROADS = [
-  { tab: "① 145-165K", title: "145K-165K（和平、和仁、崇德）",       lat: 24.235, lng: 121.71, z: 12 },
-  { tab: "② 165-185K", title: "165K-185K（崇德、新城、北埔）",       lat: 24.14, lng: 121.63, z: 12 },
-  { tab: "③ 185-205K", title: "185K-205K（花蓮市區、吉安、壽豐）",   lat: 23.95, lng: 121.57, z: 12 },
-  { tab: "④ 205-225K", title: "205K-225K（壽豐、溪口、鳳林）",       lat: 23.78, lng: 121.49, z: 12 },
-  { tab: "⑤ 225-245K", title: "225K-245K（鳳林、光復、大農大富）",   lat: 23.67, lng: 121.42, z: 12 },
-  { tab: "⑥ 245-265K", title: "245K-265K（光復、瑞穗、舞鶴）",       lat: 23.53, lng: 121.38, z: 12 },
-  { tab: "⑦ 265-285K", title: "265K-285K（瑞穗、三民、玉里）",       lat: 23.40, lng: 121.33, z: 12 },
-  { tab: "⑧ 285-305K", title: "285K-305K（東里、富里、竹田）",       lat: 23.22, lng: 121.27, z: 12 },
+  { km: "145K – 165K", towns: "和平・和仁・崇德",         lat: 24.235, lng: 121.71, z: 12 },
+  { km: "165K – 185K", towns: "崇德・新城・北埔",         lat: 24.14,  lng: 121.63, z: 12 },
+  { km: "185K – 205K", towns: "花蓮市區・吉安・壽豐",     lat: 23.95,  lng: 121.57, z: 12 },
+  { km: "205K – 225K", towns: "壽豐・溪口・鳳林",         lat: 23.78,  lng: 121.49, z: 12 },
+  { km: "225K – 245K", towns: "鳳林・光復・大農大富",     lat: 23.67,  lng: 121.42, z: 12 },
+  { km: "245K – 265K", towns: "光復・瑞穗・舞鶴",         lat: 23.53,  lng: 121.38, z: 12 },
+  { km: "265K – 285K", towns: "瑞穗・三民・玉里",         lat: 23.40,  lng: 121.33, z: 12 },
+  { km: "285K – 305K", towns: "東里・富里・竹田",         lat: 23.22,  lng: 121.27, z: 12 },
 ];
-
-let cur = 0, map, traffic;
-const tabsEl = document.getElementById('tabs');
-
-function gmapsLink(r) {
-  // 與你提供的網址同格式：!5m1!1e1 = 開啟即時路況圖層
-  return `https://www.google.com/maps/@${r.lat},${r.lng},${r.z}z/data=!5m1!1e1`;
-}
-function stamp() {
-  document.getElementById('last').textContent = '｜更新於 ' + new Date().toLocaleTimeString('zh-TW', {hour12:false});
-}
-function select(i) {
-  cur = i;
-  const r = ROADS[i];
-  [...tabsEl.children].forEach((b, j) => b.classList.toggle('active', i === j));
-  document.getElementById('road-title').textContent = '📍 ' + r.title;
-  document.getElementById('open-link').href = gmapsLink(r);
-  if (map) { map.setCenter({lat: r.lat, lng: r.lng}); map.setZoom(r.z); }
-}
-
+const list = document.getElementById('list');
 ROADS.forEach((r, i) => {
-  const b = document.createElement('button');
-  b.className = 'tab-btn' + (i === 0 ? ' active' : '');
-  b.textContent = r.tab;
-  b.onclick = () => select(i);
-  tabsEl.appendChild(b);
+  const a = document.createElement('a');
+  a.className = 'seg';
+  a.target = '_blank'; a.rel = 'noopener';
+  a.href = `https://www.google.com/maps/@${r.lat},${r.lng},${r.z}z/data=!5m1!1e1`; // !5m1!1e1 = 即時路況圖層
+  a.innerHTML = `<div class="num">${i + 1}</div>
+    <div class="info"><div class="km">${r.km}</div><div class="towns">${r.towns}</div></div>
+    <div class="go">看路況 ›</div>`;
+  list.appendChild(a);
 });
-
-window.initMap = function () {
-  const r = ROADS[cur];
-  document.getElementById('map').hidden = false;
-  map = new google.maps.Map(document.getElementById('map'), {
-    center: {lat: r.lat, lng: r.lng}, zoom: r.z,
-    gestureHandling: 'greedy', mapTypeControl: false, streetViewControl: false, fullscreenControl: true
-  });
-  traffic = new google.maps.TrafficLayer();
-  traffic.setMap(map);
-  setInterval(() => { traffic.setMap(null); traffic.setMap(map); stamp(); }, 5 * 60 * 1000);
-};
-
-select(0);
-stamp();
-if (API_KEY) {
-  const s = document.createElement('script');
-  s.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap&language=zh-TW&loading=async`;
-  s.async = true;
-  s.onerror = () => { document.getElementById('nokey').hidden = false; };
-  document.head.appendChild(s);
-} else {
-  document.getElementById('nokey').hidden = false;
-}
 </script>
 </body>
 </html>
